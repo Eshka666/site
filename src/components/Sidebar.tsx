@@ -1,5 +1,5 @@
 import { component$, useSignal, useTask$ } from "@builder.io/qwik";
-import { Link } from "@builder.io/qwik-city";
+import { useNavigate } from "@builder.io/qwik-city";
 import { supabase } from "~/lib/supabase";
 
 type Product = {
@@ -10,6 +10,7 @@ type Product = {
 
 export default component$(() => {
   const products = useSignal<Product[]>([]);
+  const nav = useNavigate();
 
   useTask$(async () => {
     const { data, error } = await supabase
@@ -22,23 +23,25 @@ export default component$(() => {
   });
 
   return (
-    <aside class="bg-gray-200 p-4 ">
+    <aside class="bg-gray-200 p-4">
       <div class="mb-4">
-        <Link href="/product/new" class="bg-blue-500 text-white p-2 rounded">
+        <button
+          onClick$={() => nav(`/product/new`)}
+          class="bg-blue-500 text-white p-2 rounded"
+        >
           ➕ Добавить новый товар
-        </Link>
+        </button>
       </div>
-
       <h2 class="text-xl font-semibold mb-4">Товары</h2>
       <ul>
         {products.value.map((product) => (
           <li key={product.id} class="mb-2">
-            <Link
-              href={`/product/${product.slug}`}
+            <button
+              onClick$={() => nav(`/product/${product.slug}`)}
               class="text-blue-500 hover:underline"
             >
               {product.name}
-            </Link>
+            </button>
           </li>
         ))}
       </ul>

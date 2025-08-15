@@ -8,6 +8,7 @@ import {
 import { useNavigate } from "@builder.io/qwik-city";
 import { supabase } from "~/lib/supabase";
 
+// Функция для генерации slug
 const generateSlug = (text: string) =>
   text
     .toLowerCase()
@@ -175,7 +176,6 @@ export default component$(() => {
           {loading.value ? "Сохраняем..." : "Сохранить"}
         </button>
       </form>
-
       <button
         onClick$={() => nav(-1)}
         class="mt-6 w-full text-center bg-gray-200 p-2 rounded-md hover:bg-gray-300"
