@@ -57,7 +57,9 @@ export default component$(() => {
         />
       </div>
 
-      <p class="text-gray-700 text-lg mb-4">{product.value.description}</p>
+      <p class="text-gray-700 text-lg mb-4">
+        Описание: {product.value.description}
+      </p>
 
       <p class="text-xl font-semibold text-gray-800 mb-4">
         Цена: {product.value.price} {product.value.currency}
