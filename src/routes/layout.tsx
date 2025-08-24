@@ -1,7 +1,17 @@
-import { component$, Slot } from "@builder.io/qwik";
+import {
+  component$,
+  Slot,
+  useSignal,
+  useContextProvider,
+} from "@builder.io/qwik";
 import Sidebar from "~/components/Sidebar";
+import { ProductUpdateContext } from "~/context/product-context";
 
 export default component$(() => {
+  const productUpdate = useSignal({ refresh: 0 });
+
+  useContextProvider(ProductUpdateContext, productUpdate);
+
   return (
     <div class="flex flex-col min-h-screen">
       <header class="bg-gray-800 text-white p-4">

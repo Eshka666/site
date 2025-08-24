@@ -5,9 +5,11 @@ import {
   noSerialize,
   type NoSerialize,
   useTask$,
+  useContext,
 } from "@builder.io/qwik";
 import { useNavigate } from "@builder.io/qwik-city";
 import { supabase } from "~/lib/supabase";
+import { ProductUpdateContext } from "~/context/product-context";
 
 const generateSlug = (text: string) =>
   text
@@ -30,17 +32,17 @@ export default component$(() => {
   const imageFile = useSignal<NoSerialize<File> | null>(null);
   const loading = useSignal(false);
   const error = useSignal("");
-
   const categories = useSignal<Category[]>([]);
   const selectedCategory = useSignal("new");
   const newCategoryName = useSignal("");
+
+  const productUpdate = useContext(ProductUpdateContext);
 
   useTask$(async () => {
     const { data, error } = await supabase
       .from("categories")
       .select("id, name, slug")
       .order("name");
-
     if (!error && data) {
       categories.value = data as Category[];
     }
@@ -71,14 +73,13 @@ export default component$(() => {
       let imageUrl = "";
       let categoryId = "";
 
+      // Загрузка картинки
       if (imageFile.value) {
         const ext = imageFile.value.name.split(".").pop();
-        const fileName = `${Date.now()}.${ext}`;
-
+        const fileName = `product-${Date.now()}.${ext}`;
         const { error: uploadError } = await supabase.storage
           .from("product-images")
           .upload(fileName, imageFile.value);
-
         if (uploadError)
           throw new Error("Ошибка загрузки: " + uploadError.message);
 
@@ -87,28 +88,24 @@ export default component$(() => {
           .getPublicUrl(fileName).data.publicUrl;
       }
 
-      // Обрабатываем категорию
+      // Категория
       if (selectedCategory.value === "new") {
         if (!newCategoryName.value.trim()) {
           throw new Error("Введите название новой категории");
         }
 
         const categorySlug = generateSlug(newCategoryName.value);
-
         let uniqueSlug = categorySlug;
         let count = 1;
-
         while (true) {
           const { data: existingCategory } = await supabase
             .from("categories")
             .select("id")
             .eq("slug", uniqueSlug)
             .maybeSingle();
-
           if (!existingCategory) {
             break;
           }
-
           uniqueSlug = `${categorySlug}-${count++}`;
         }
 
@@ -117,7 +114,6 @@ export default component$(() => {
           .insert([{ name: newCategoryName.value, slug: uniqueSlug }])
           .select("id")
           .single();
-
         if (catError) throw new Error("Ошибка категории: " + catError.message);
 
         categoryId = newCat.id;
@@ -125,28 +121,23 @@ export default component$(() => {
         categoryId = selectedCategory.value;
       }
 
-      // Генерация уникального slug для товара
       const baseSlug = generateSlug(name.value);
       let slug = baseSlug;
       let count = 1;
-
       while (true) {
         const { data, error: slugError } = await supabase
           .from("products")
           .select("id")
           .eq("slug", slug)
           .maybeSingle();
-
         if (slugError) throw new Error("Проверка slug: " + slugError.message);
         if (!data) break;
-
         slug = `${baseSlug}-${count++}`;
       }
 
-      // Вставляем новый товар
       const { data: inserted, error: insertError } = await supabase
         .from("products")
-        .upsert([
+        .insert([
           {
             name: name.value,
             slug,
@@ -157,13 +148,14 @@ export default component$(() => {
             category_id: categoryId,
           },
         ])
-        .select("id, slug")
+        .select("slug")
         .single();
 
       if (insertError) throw new Error(insertError.message);
 
       if (inserted) {
-        nav(`/product/${inserted.slug}/`);
+        productUpdate.value.refresh++;
+        await nav(`/product/${inserted.slug}/`);
       }
     } catch (err) {
       error.value = (err as Error).message;
@@ -266,6 +258,7 @@ export default component$(() => {
         </div>
 
         {error.value && <p class="text-red-500 text-sm">{error.value}</p>}
+
         <button
           type="submit"
           disabled={loading.value}
@@ -274,6 +267,7 @@ export default component$(() => {
           {loading.value ? "Сохраняем..." : "Сохранить"}
         </button>
       </form>
+
       <button
         onClick$={() => nav(-1)}
         class="mt-6 w-full text-center bg-gray-200 p-2 rounded-md hover:bg-gray-300"
